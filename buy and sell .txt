@@ -1,0 +1,164 @@
+//@version=4
+
+
+
+study(title="Buy and Sell", overlay=true)
+
+// === /Source ===
+
+src = input(defval=close, title="Source")
+
+// === /Sampling Period ===
+
+per = input(defval=70, minval=1, title=" Period")
+
+multiplyer = input(defval=3, minval=0.1, title=" Range")
+
+
+myLineToggle = input(defval=true, title="Show Lines")
+myLabelToggle = input(defval=true, title="Show Lables")
+mybandToggle = input(defval=false, title="Show High and low bands")
+// gradient color
+//-----------------------------------------------------------------
+
+int		rsiLen	= input(20, minval=1, title=" rsiLen  for color gradient")
+int		rsiOb	= 80	
+int		rsiOs	= 20	
+int		bbLen	= 1400
+float	bbMult	= 2.618
+
+f_bb(_src, _len, _mult)=>
+    _dev = _mult * stdev(_src, _len)
+    _mid = sma(_src, _len)
+    _low  = _mid - _dev
+    _high = _mid + _dev
+    [_low, _high]
+
+// Rsi
+rsi = rsi(close, rsiLen)
+
+// BB on Rsi
+[rsiBandsDn, rsiBandsUp] = f_bb(rsi, bbLen, bbMult)
+
+
+bool	colFlip		= input(false,"Invert Colors")
+
+// In Range Function {
+f_in(_min, _src, _max) => (_min < _src) and (_src <= _max)
+// }
+
+
+// Color Gradient Function {
+f_colGrad (_src , _minSrc, _maxSrc, _flip) =>
+    _col1	=  #E50003 
+    _col2	=  #E30D00 
+    _col3	=  #E12100 
+    _col4	=  #DF3500 
+    _col5	=  #DD4800
+    _col6	= #DB5B00 
+    _col7	= #D96E00 
+    _col8	= #D78000 
+    _col9	= #D59200
+    _col10	= #D3A400 
+    _col11	=  #D1B500 
+    _col12	= #CFC600
+    _col13	= #AECB00 
+    _col14	= #AECB00
+    _col15	=  #9AC900 
+    _col16	= #87C700 
+    _col17	= #74C500 
+    _col18	=  #61C300 
+    _col19	=  #4FC100
+    _col20	= #3DBF00 
+    _max = _maxSrc, _min = _minSrc, _v1 = abs(_max - _min), _v2 = _v1 / 20
+	_c1  = _min + _v2, _c2  = _c1  + _v2, _c3  = _c2  + _v2, _c4  = _c3  + _v2, _c5  = _c4  + _v2
+	_c6  = _c5  + _v2, _c7  = _c6  + _v2, _c8  = _c7  + _v2, _c9  = _c8  + _v2, _c10 = _c9  + _v2
+	_c11 = _c10 + _v2, _c12 = _c11 + _v2, _c13 = _c12 + _v2, _c14 = _c13 + _v2, _c15 = _c14 + _v2
+	_c16 = _c15 + _v2, _c17 = _c16 + _v2, _c18 = _c17 + _v2, _c19 = _c18 + _v2, _c20 = _c19 + _v2
+	result =
+	  _src < _min            ? _flip ? _col20 : _col1  : f_in(_min, _src, _c1)  ? _flip ? _col20 : _col1  : f_in(_c1,  _src, _c2)  ? _flip ? _col19 : _col2  :
+	  f_in(_c2,  _src, _c3)  ? _flip ? _col18 : _col3  : f_in(_c3,  _src, _c4)  ? _flip ? _col17 : _col4  : f_in(_c4,  _src, _c5)  ? _flip ? _col16 : _col5  :
+	  f_in(_c5,  _src, _c6)  ? _flip ? _col15 : _col6  : f_in(_c6,  _src, _c7)  ? _flip ? _col14 : _col7  : f_in(_c7,  _src, _c8)  ? _flip ? _col13 : _col8  :
+	  f_in(_c8,  _src, _c9)  ? _flip ? _col12 : _col9  : f_in(_c9,  _src, _c10) ? _flip ? _col11 : _col10 : f_in(_c10, _src, _c11) ? _flip ? _col10 : _col11 :
+	  f_in(_c11, _src, _c12) ? _flip ? _col9  : _col12 : f_in(_c12, _src, _c13) ? _flip ? _col8  : _col13 : f_in(_c13, _src, _c14) ? _flip ? _col7  : _col14 :
+	  f_in(_c14, _src, _c15) ? _flip ? _col6  : _col15 : f_in(_c15, _src, _c16) ? _flip ? _col5  : _col16 : f_in(_c16, _src, _c17) ? _flip ? _col4  : _col17 :
+	  f_in(_c17, _src, _c18) ? _flip ? _col3  : _col18 : f_in(_c18, _src, _c19) ? _flip ? _col2  : _col19 : f_in(_c19, _src, _c20) ? _flip ? _col1  : _col20 : 
+	  _src > _c20            ? _flip ? _col1  : _col20 : na 
+
+rsiCol = f_colGrad(rsi , rsiBandsDn, rsiBandsUp, colFlip)
+
+// === /Smooth Average Range ===
+
+
+smoothring_average_range(x, t, m) =>
+
+    wper = t * 2 - 1
+    avrng = ema(abs(x - x[1]), t)
+    smoothring_average_range = ema(avrng, wper) * m
+    smoothring_average_range
+smrng = smoothring_average_range(src, per, multiplyer)
+
+// === /Range Filter ===
+
+range_filter(x, r) =>
+    range_filter = x
+    range_filter := x > nz(range_filter[1]) ? x - r < nz(range_filter[1]) ? nz(range_filter[1]) : x - r : 
+       x + r > nz(range_filter[1]) ? nz(range_filter[1]) : x + r
+    range_filter
+filt = range_filter(src, smrng)
+
+// === /Filter Direction ===
+
+upward = 0.0
+upward := filt > filt[1] ? nz(upward[1]) + 1 : filt < filt[1] ? 0 : nz(upward[1])
+downward = 0.0
+downward := filt < filt[1] ? nz(downward[1]) + 1 : filt > filt[1] ? 0 : nz(downward[1])
+
+// === /Target Bands ===
+
+high_band = filt + smrng
+low_band = filt - smrng
+
+// === /Colors ===
+
+filtcolor = upward > 0 ? color.green : downward > 0 ? color.red : color.red
+barcolor = src > filt and src > src[1] and upward > 0 ? color.green : 
+   src > filt and src < src[1] and upward > 0 ? color.green : 
+   src < filt and src < src[1] and downward > 0 ? color.red : 
+   src < filt and src > src[1] and downward > 0 ? color.red : color.red
+
+filtplot = plot(filt, color=filtcolor, linewidth=0, transp=100, title="Range")
+
+// === /Target ===
+
+high_bandplot = plot(mybandToggle?high_band:na, color=rsiCol, linewidth=1, transp=0, title="High Target")
+low_bandplot = plot(mybandToggle?low_band:na, color=rsiCol, linewidth=1, transp=0, title="Low Target")
+
+// === /Fills ===
+
+fill(high_bandplot, filtplot, color=rsiCol, transp=80, title="High Target Range")
+fill(low_bandplot, filtplot, color=rsiCol, transp=80, title="Low Target Range")
+
+// === /Bar Color ===
+
+barcolor(barcolor)
+longCond = bool(na)
+shortCond = bool(na)
+longCond := src > filt and src > src[1] and upward > 0 or 
+   src > filt and src < src[1] and upward > 0
+shortCond := src < filt and src < src[1] and downward > 0 or 
+   src < filt and src > src[1] and downward > 0
+
+CondIni = 0
+CondIni := longCond ? 1 : shortCond ? -1 : CondIni[1]
+longCondition = longCond and CondIni[1] == -1
+shortCondition = shortCond and CondIni[1] == 1
+trendColor = longCondition ? color.red : shortCondition ? color.green : na
+// === /Alerts ===
+plot(myLineToggle?longCondition ? low - 0.004  : shortCondition ? high + 0.004 : na : na, color=trendColor, style=plot.style_line, linewidth=4, editable=false)
+
+plotshape(myLabelToggle ?longCondition:na, title="Buy Signal", text="BUY", textcolor=color.green, style=shape.triangleup, size=size.huge, location=location.belowbar, color=color.green, transp=0)
+plotshape(myLabelToggle ?shortCondition:na, title="Sell Signal", text="SELL", textcolor=color.red, style=shape.triangledown, size=size.huge, location=location.abovebar, color=color.red, transp=0)
+
+alertcondition(longCondition, title=" Buy", message=" BUY")
+alertcondition(shortCondition, title=" Sell", message=" SELL")
