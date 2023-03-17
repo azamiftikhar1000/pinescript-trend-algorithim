@@ -1,0 +1,175 @@
+//@version=4
+
+study("Market Trend", overlay=true)
+
+show_trend = input(true, title="Show Trend Arrows at Top and Bottom of Screen?")
+
+len1 = 13
+
+len2 = 21
+len0 = 50
+
+// gradient color
+//-----------------------------------------------------------------
+
+int		rsiLen	= input(50, minval=1, title=" rsiLen  for color gradient")
+int		rsiOb	= 80	
+int		rsiOs	= 20	
+int		bbLen	= 1400
+float	bbMult	= 2.618
+
+f_bb(_src, _len, _mult)=>
+    _dev = _mult * stdev(_src, _len)
+    _mid = sma(_src, _len)
+    _low  = _mid - _dev
+    _high = _mid + _dev
+    [_low, _high]
+
+showSR = input(title="Show Supports & Resistances", defval=true)
+left=input(50,title="Left Pivot", type=input.integer)
+right=input(25,title="Right Pivot", type=input.integer)
+quick_right=input(5,title="Quick Right Pivot", type=input.integer) // Used to try and detect a more recent significant swing.
+
+// Rsi
+rsi = rsi(close, rsiLen)
+
+// BB on Rsi
+[rsiBandsDn, rsiBandsUp] = f_bb(rsi, bbLen, bbMult)
+
+
+bool	colFlip		= input(false,"Invert Colors")
+
+// In Range Function {
+f_in(_min, _src, _max) => (_min < _src) and (_src <= _max)
+// }
+
+
+// Color Gradient Function {
+f_colGrad (_src , _minSrc, _maxSrc, _flip) =>
+    _col1	=  #E50003 
+    _col2	=  #E30D00 
+    _col3	=  #E12100 
+    _col4	=  #DF3500 
+    _col5	=  #DD4800
+    _col6	= #DB5B00 
+    _col7	= #D96E00 
+    _col8	= #D78000 
+    _col9	= #D59200
+    _col10	= #D3A400 
+    _col11	=  #D1B500 
+    _col12	= #CFC600
+    _col13	= #AECB00 
+    _col14	= #AECB00
+    _col15	=  #9AC900 
+    _col16	= #87C700 
+    _col17	= #74C500 
+    _col18	=  #61C300 
+    _col19	=  #4FC100
+    _col20	= #3DBF00 
+    _max = _maxSrc, _min = _minSrc, _v1 = abs(_max - _min), _v2 = _v1 / 20
+	_c1  = _min + _v2, _c2  = _c1  + _v2, _c3  = _c2  + _v2, _c4  = _c3  + _v2, _c5  = _c4  + _v2
+	_c6  = _c5  + _v2, _c7  = _c6  + _v2, _c8  = _c7  + _v2, _c9  = _c8  + _v2, _c10 = _c9  + _v2
+	_c11 = _c10 + _v2, _c12 = _c11 + _v2, _c13 = _c12 + _v2, _c14 = _c13 + _v2, _c15 = _c14 + _v2
+	_c16 = _c15 + _v2, _c17 = _c16 + _v2, _c18 = _c17 + _v2, _c19 = _c18 + _v2, _c20 = _c19 + _v2
+	result =
+	  _src < _min            ? _flip ? _col20 : _col1  : f_in(_min, _src, _c1)  ? _flip ? _col20 : _col1  : f_in(_c1,  _src, _c2)  ? _flip ? _col19 : _col2  :
+	  f_in(_c2,  _src, _c3)  ? _flip ? _col18 : _col3  : f_in(_c3,  _src, _c4)  ? _flip ? _col17 : _col4  : f_in(_c4,  _src, _c5)  ? _flip ? _col16 : _col5  :
+	  f_in(_c5,  _src, _c6)  ? _flip ? _col15 : _col6  : f_in(_c6,  _src, _c7)  ? _flip ? _col14 : _col7  : f_in(_c7,  _src, _c8)  ? _flip ? _col13 : _col8  :
+	  f_in(_c8,  _src, _c9)  ? _flip ? _col12 : _col9  : f_in(_c9,  _src, _c10) ? _flip ? _col11 : _col10 : f_in(_c10, _src, _c11) ? _flip ? _col10 : _col11 :
+	  f_in(_c11, _src, _c12) ? _flip ? _col9  : _col12 : f_in(_c12, _src, _c13) ? _flip ? _col8  : _col13 : f_in(_c13, _src, _c14) ? _flip ? _col7  : _col14 :
+	  f_in(_c14, _src, _c15) ? _flip ? _col6  : _col15 : f_in(_c15, _src, _c16) ? _flip ? _col5  : _col16 : f_in(_c16, _src, _c17) ? _flip ? _col4  : _col17 :
+	  f_in(_c17, _src, _c18) ? _flip ? _col3  : _col18 : f_in(_c18, _src, _c19) ? _flip ? _col2  : _col19 : f_in(_c19, _src, _c20) ? _flip ? _col1  : _col20 : 
+	  _src > _c20            ? _flip ? _col1  : _col20 : na 
+
+rsiCol = f_colGrad(rsi , rsiBandsDn, rsiBandsUp, colFlip)
+
+
+
+moving_average_1 = ema(close, len1)
+moving_average_2 = ema(close, len2)
+moving_average = ema(close, len0)
+
+
+//tr is max(high - low, abs(high - close[1]), abs(low - close[1])) 
+range_moving_average = ema(tr, len0)
+upper_bound = moving_average + range_moving_average * 0.5
+lower_bound = moving_average - range_moving_average * 0.5
+midChan = (upper_bound + lower_bound) / 2
+//Trend Definition
+tr_up = moving_average_1 > upper_bound and moving_average_2 > upper_bound , tr_down = moving_average_1 < lower_bound and moving_average_2 < lower_bound
+
+    
+//Conservative Entry True/False Condition
+entryUpTrend = moving_average_1 > upper_bound and moving_average_2 > upper_bound and close[1] < upper_bound and close > upper_bound ? 1 : 0
+entryDnTrend = moving_average_1 < lower_bound and moving_average_2 < lower_bound and close[1] > lower_bound and close < lower_bound ? 1 : 0
+
+//Define Up and Down Trend for Trend Arrows at Top and Bottom of Screen
+upTrend = moving_average_1 > upper_bound and moving_average_2 > upper_bound
+downTrend = moving_average_1 < lower_bound and moving_average_2 < lower_bound
+ 
+//Definition for Conseervative Entry Up and Down PlotArrows
+Conseervative_up = entryUpTrend == 1 ? entryUpTrend : 0
+Conseervative_down = entryDnTrend == 1 ? entryDnTrend : 0
+
+
+barcolor(tr_up and close < upper_bound ? color.yellow :  tr_down and close > lower_bound ? color.yellow : na)
+entryDnT_1 = tr_down and close[1] > lower_bound and close < lower_bound
+barcolor( tr_up and close[1] < upper_bound and close > upper_bound? color.aqua : entryDnT_1 ? color.aqua : na)
+
+
+
+//Channel Plots
+p1=plot(upper_bound, title="Upper Channel", color=rsiCol, style=plot.style_line, linewidth=3)
+p2=plot(midChan, title="mid Channel", color=rsiCol, style=plot.style_line, linewidth=1)
+p3=plot(lower_bound, title="Lower Channel", color=rsiCol, style=plot.style_line, linewidth=3)
+
+
+//Trend Triangles at Top and Bottom of Screen
+plotshape(show_trend and upTrend ? upTrend : na, title="Conservative Buy Entry Triangle", style=shape.triangleup, location=location.bottom, color=color.lime, transp=0, offset=0)
+plotshape(show_trend and downTrend ? downTrend : na, title="Conservative Short Entry Triangle", style=shape.triangledown, location=location.top, color=color.red, transp=0, offset=0)
+
+
+
+// © PIG Algo S/R
+
+pivot_high = pivothigh(high,left,right)
+pivot_lows = pivotlow(low, left,right)
+
+quick_pivot_high = pivothigh(high,left,quick_right)
+quick_pivot_lows = pivotlow(low, left,quick_right)
+
+level1 = valuewhen(quick_pivot_high, high[quick_right], 0)
+level2 = valuewhen(quick_pivot_lows, low[quick_right], 0)
+level3 = valuewhen(pivot_high, high[right], 0)
+level4 = valuewhen(pivot_lows, low[right], 0)
+level5 = valuewhen(pivot_high, high[right], 1)
+level6 = valuewhen(pivot_lows, low[right], 1)
+level7 = valuewhen(pivot_high, high[right], 2)
+level8 = valuewhen(pivot_lows, low[right], 2)
+
+level1_col = close >= level1 ? color.green : color.red
+level2_col = close >= level2 ? color.green : color.red
+level3_col = close >= level3 ? color.green : color.red
+level4_col = close >= level4 ? color.green : color.red
+level5_col = close >= level5 ? color.green : color.red
+level6_col = close >= level6 ? color.green : color.red
+level7_col = close >= level7 ? color.green : color.red
+level8_col = close >= level8 ? color.green : color.red
+
+event = close >= level6
+since_event = barssince(event)
+first_event = since_event==1
+
+second_event = close < level6
+since_second_event = barssince(second_event)
+sec_event = since_second_event==1
+
+
+plot((showSR) ? level1 : na, title="S/R Settings", style=plot.style_line, color=level1_col, show_last=1, linewidth=1, trackprice=true)
+plot((showSR) ? level2 : na, title="S/R Settings", style=plot.style_line, color=level2_col, show_last=1, linewidth=1, trackprice=true)
+plot((showSR) ? level3 : na, title="S/R Settings", style=plot.style_line, color=level3_col, show_last=1, linewidth=1, trackprice=true)
+plot((showSR) ? level4 : na, title="S/R Settings", style=plot.style_line, color=level4_col, show_last=1, linewidth=1, trackprice=true)
+plot((showSR) ? level5 : na, title="S/R Settings", style=plot.style_line, color=level5_col, show_last=1, linewidth=1, trackprice=true)
+plot((showSR) ? level6 : na, title="S/R Settings", style=plot.style_line, color=level6_col, show_last=1, linewidth=1, trackprice=true)
+plot((showSR) ? level7 : na, title="S/R Settings", style=plot.style_line, color=level7_col, show_last=1, linewidth=1, trackprice=true)
+plot((showSR) ? level8 : na, title="S/R Settings", style=plot.style_line, color=level8_col, show_last=1, linewidth=1, trackprice=true)
