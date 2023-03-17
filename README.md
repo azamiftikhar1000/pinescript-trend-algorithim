@@ -1,4 +1,4 @@
-## Pinescript Algorithm README
+## Pinescript Algorithms
 
 This repository contains two scripts for Pinescript algorithm trading. The scripts are:
 
