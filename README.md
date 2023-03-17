@@ -6,6 +6,7 @@ This repository contains two scripts for Pinescript algorithm trading. The scrip
 ![buy and sell](images/Buy-Sell.png)
 
 2. `trend analysis`: This script contains trend analysis for a given asset. The trend analysis is generated based on specific technical analysis indicators such as Moving Averages (MA). The trend analysis generated can be used for algorithmic trading as well as for manual trading.
+![trend analysis](images/Trend.png)
 
 ### Requirements
 
