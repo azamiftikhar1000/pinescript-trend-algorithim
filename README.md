@@ -3,6 +3,7 @@
 This repository contains two scripts for Pinescript algorithm trading. The scripts are:
 
 1. `buy and sell`: This script contains buy and sell signals for a given asset. The buy and sell signals are generated based on specific technical analysis indicators such as Moving Average Convergence Divergence (MACD) and Relative Strength Index (RSI). The signals generated can be used for algorithmic trading.
+![buy and sell](images/Buy-Sell.png)
 
 2. `trend analysis`: This script contains trend analysis for a given asset. The trend analysis is generated based on specific technical analysis indicators such as Moving Averages (MA). The trend analysis generated can be used for algorithmic trading as well as for manual trading.
 
